@@ -1,143 +1,159 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from matplotlib.patches import Arc
 
 # ===========================
 # 1. 环境与参数设置
 # ===========================
-A = np.array([-3.0, 0.0])  # 起点
-B = np.array([3.0, 0.0])   # 终点
-v_wave = 1.0               # 波前扩散速度
-v_agent = 0.2              # 智能体(S)移动速度
-frames = 100               # 动画总帧数
-total_time = 10.0          # 总模拟时间
+A = np.array([-4.0, 0.0])
+B = np.array([4.0, 0.0])
+v_wave = 1.5
+step_size = 0.6  # 步子迈大一点，圆心移动更明显
+frames = 100
+total_time = 10.0
 
-# 设置绘图画布 (上下两张图)
+obstacle = np.array([1.0, 1.5]) 
+obstacle_radius = 0.6
+
 fig, (ax_top, ax_bot) = plt.subplots(2, 1, figsize=(8, 10))
 plt.subplots_adjust(hspace=0.3)
 
-# 初始化上下图的元素列表
-patches_top = []
-patches_bot = []
-trail_circles = [] # 用于记录下半图历史的绿色圆
-
 def init():
-    # ---- 上半图：波前干涉 ----
-    ax_top.set_title("Top: Wavefront Interference (Start A to End B)", fontsize=12)
-    ax_top.set_xlim(-6, 6)
-    ax_top.set_ylim(-4, 4)
-    ax_top.set_aspect('equal')
-    ax_top.grid(True, linestyle=':', alpha=0.5)
-    ax_top.scatter(A[0], A[1], c='black', s=50, label='Start (A)')
-    ax_top.scatter(B[0], B[1], c='black', s=50, label='End (B)')
-    ax_top.legend(loc='upper right')
-
-    # ---- 下半图：绿色圆演化 ----
-    ax_bot.set_title("Bottom: Green Circle Evolution as Agent Moves", fontsize=12)
-    ax_bot.set_xlim(-6, 6)
-    ax_bot.set_ylim(-4, 4)
-    ax_bot.set_aspect('equal')
-    ax_bot.grid(True, linestyle=':', alpha=0.5)
-    ax_bot.scatter(A[0], A[1], c='black', s=50)
-    ax_bot.text(A[0]-0.5, A[1]-0.6, 'Start (A)', fontsize=9)
-    ax_bot.scatter(B[0], B[1], c='black', s=50)
-    ax_bot.text(B[0]-0.5, B[1]-0.6, 'End (B)', fontsize=9)
-    
+    ax_top.set_title("Top: Wave Interference", fontsize=12)
+    ax_top.set_xlim(-7, 7); ax_top.set_ylim(-4, 4); ax_top.set_aspect('equal')
+    ax_bot.set_title("Bottom: Green Circle Center 'O' Moves Right as S Jumps", fontsize=12)
+    ax_bot.set_xlim(-7, 7); ax_bot.set_ylim(-4, 4); ax_bot.set_aspect('equal')
     return []
 
-# 核心更新函数，每一帧调用一次
 def update(frame):
-    # 时间推进
     t = (frame / frames) * total_time
-    
-    # 1. 智能体(S)的实时位置 (向前移动)
-    S_curr = A + np.array([min(v_agent * t, 6), 0]) # 限制不能跑出视野
-    
-    # 当前波前半径
     r_wave = v_wave * t
     
-    # ---- 绘制上半图：红蓝波 + 绿圆 ----
-    ax_top.clear()
-    ax_top.set_title(f"Top: t={t:.1f}s", fontsize=12)
-    ax_top.set_xlim(-6, 6)
-    ax_top.set_ylim(-4, 4)
-    ax_top.set_aspect('equal')
-    ax_top.grid(True, linestyle=':', alpha=0.5)
-    ax_top.scatter(A[0], A[1], c='black', s=50, label='Start (A)')
-    ax_top.scatter(B[0], B[1], c='black', s=50, label='End (B)')
+    # 计算步数和当前S的位置
+    steps_taken = int((v_wave * t) / step_size) 
+    S_curr = np.array([min(A[0] + steps_taken * step_size, B[0] - 0.2), 0])
     
-    # 画蓝波 (A发出)
-    circle_A = plt.Circle(A, r_wave, color='blue', fill=False, linestyle='--', linewidth=1.5, alpha=0.7)
-    ax_top.add_patch(circle_A)
-    # 画红波 (B发出)
-    circle_B = plt.Circle(B, r_wave, color='red', fill=False, linestyle='--', linewidth=1.5, alpha=0.7)
-    ax_top.add_patch(circle_B)
-    # 计算并绘制当前时刻的绿色圆 (干涉圆)
-    d = np.linalg.norm(B - A)
-    if r_wave > d/2: # 当两波相交时
-        O_top = (A + B) / 2.0
-        r_g_top = np.sqrt(r_wave**2 - (d/2)**2)
-        green_circle_top = plt.Circle(O_top, r_g_top, color='green', fill=False, linewidth=3)
-        ax_top.add_patch(green_circle_top)
-        ax_top.text(O_top[0]-1, O_top[1]+0.8, "Green Circle", color='green', fontsize=10)
+    # 计算当前的绿圆圆心 O_curr
+    d_SB = np.linalg.norm(B - S_curr)
+    O_curr = (S_curr + B) / 2.0
+    
+    # ---- 绘制上半图 ----
+    ax_top.clear()
+    ax_top.set_xlim(-7, 7); ax_top.set_ylim(-4, 4); ax_top.set_aspect('equal')
+    ax_top.grid(True, linestyle=':', alpha=0.5)
+    ax_top.scatter(A[0], A[1], c='black', s=50, label='Start')
+    ax_top.scatter(B[0], B[1], c='black', s=50, label='End')
+    ax_top.scatter(obstacle[0], obstacle[1], c='red', s=200, alpha=0.4, label='Obstacle')
+    
+    circle_A = plt.Circle(A, r_wave, color='blue', fill=False, linestyle='--', lw=1.5, alpha=0.5)
+    circle_B = plt.Circle(B, r_wave, color='red', fill=False, linestyle='--', lw=1.5, alpha=0.5)
+    ax_top.add_patch(circle_A); ax_top.add_patch(circle_B)
+    
+    d_AB = np.linalg.norm(B - A)
+    if r_wave > d_AB/2:
+        O_fixed = (A + B) / 2.0
+        r_g = np.sqrt(r_wave**2 - (d_AB/2)**2)
+        ax_top.add_patch(plt.Circle(O_fixed, r_g, color='green', fill=False, lw=3))
     ax_top.legend(loc='upper right')
 
-    # ---- 绘制下半图：移动的绿圆 (轨迹) ----
+    # ---- 绘制下半图 ----
     ax_bot.clear()
-    ax_bot.set_title(f"Bottom: t={t:.1f}s", fontsize=12)
-    ax_bot.set_xlim(-6, 6)
-    ax_bot.set_ylim(-4, 4)
-    ax_bot.set_aspect('equal')
+    ax_bot.set_xlim(-7, 7); ax_bot.set_ylim(-4, 4); ax_bot.set_aspect('equal')
     ax_bot.grid(True, linestyle=':', alpha=0.5)
-    ax_bot.scatter(A[0], A[1], c='black', s=50)
-    ax_bot.text(A[0]-0.5, A[1]-0.6, 'Start (A)', fontsize=9)
-    ax_bot.scatter(B[0], B[1], c='black', s=50)
-    ax_bot.text(B[0]-0.5, B[1]-0.6, 'End (B)', fontsize=9)
-    
-    # 画智能体S的当前位置
-    ax_bot.scatter(S_curr[0], S_curr[1], c='orange', s=60, label='Agent (S)')
-    ax_bot.text(S_curr[0]+0.2, S_curr[1]+0.3, 'S', color='orange', fontsize=12)
+    ax_bot.scatter(A[0], A[1], c='black', s=50); ax_bot.text(A[0]-0.4, A[1]-0.6, 'Start', fontsize=10)
+    ax_bot.scatter(B[0], B[1], c='black', s=50); ax_bot.text(B[0]-0.4, B[1]-0.6, 'Goal', fontsize=10)
+    ax_bot.scatter(obstacle[0], obstacle[1], c='firebrick', s=400, alpha=0.4)
 
-    # 核心：计算并画出随位置变化的绿色圆
-    # 原理：当前绿色圆是基于 S_curr 和 终点 B 算出来的
-    if t > 0.1:
-        d_t = np.linalg.norm(B - S_curr)
-        # 圆心在中点
-        O_curr = (S_curr + B) / 2.0
-        # 公式：r_g^2 = r_wave^2 - (d_t/2)^2
-        if r_wave > d_t/2:
-            r_g_curr = np.sqrt(r_wave**2 - (d_t/2)**2)
-            
-            # 画当前绿圆 (深色粗线)
-            green_circle_curr = plt.Circle(O_curr, r_g_curr, color='green', fill=False, linewidth=2.5, label='Current Green Circle')
-            ax_bot.add_patch(green_circle_curr)
-            
-            # 加上“虚轴”和“M点” (为了演示高频旋转，让虚轴随着时间慢慢逆时针旋转)
-            theta = t * 0.5  # 虚轴旋转角度
-            M_x = O_curr[0] + r_g_curr * np.cos(theta)
-            M_y = O_curr[1] + r_g_curr * np.sin(theta)
-            
-            # 画虚轴
-            ax_bot.plot([O_curr[0] - r_g_curr*1.3*np.cos(theta), O_curr[0] + r_g_curr*1.3*np.cos(theta)],
-                        [O_curr[1] - r_g_curr*1.3*np.sin(theta), O_curr[1] + r_g_curr*1.3*np.sin(theta)],
-                        color='gray', linestyle='--', linewidth=1.5, label='Virtual Axis')
-            # 画M点
-            ax_bot.scatter(M_x, M_y, c='purple', s=80, zorder=5)
-            ax_bot.text(M_x+0.1, M_y+0.3, 'M', color='purple', fontsize=12)
-            ax_bot.legend(loc='upper right')
+    # 1. 画历史轨迹上的“绿圆圆心”
+    for i in range(steps_taken + 1):
+        S_hist = np.array([A[0] + i * step_size, 0])
+        O_hist = (S_hist + B) / 2.0
+        # 用绿色小十字标出历史上的圆心
+        ax_bot.plot(O_hist[0], O_hist[1], marker='+', color='forestgreen', markersize=10, markeredgewidth=2)
 
+    # 2. 画当前智能体S
+    ax_bot.scatter(S_curr[0], S_curr[1], c='orange', s=150, edgecolors='black', zorder=10)
+    ax_bot.text(S_curr[0]+0.3, S_curr[1], 'S', color='black', fontsize=14, fontweight='bold')
+
+    # 3. 画当前的绿圆
+    if t > 0.5 and d_SB < r_wave * 2: 
+        r_g_curr = np.sqrt(r_wave**2 - (d_SB/2)**2)
+        ax_bot.add_patch(plt.Circle(O_curr, r_g_curr, color='green', fill=False, lw=2, linestyle='--'))
+        
+        # 标出当前圆心文字
+        ax_bot.text(O_curr[0]-0.2, O_curr[1]+0.3, 'O', color='darkgreen', fontsize=12, fontweight='bold')
+
+        # 避障逻辑与 M点计算
+        v_obs = obstacle - O_curr
+        dist_obs = np.linalg.norm(v_obs)
+        theta = t * 1.2 # 基准旋转
+        if dist_obs > 0:
+            alpha = np.arcsin(obstacle_radius / dist_obs)
+            beta = np.arctan2(v_obs[1], v_obs[0])
+            start_angle = np.degrees(beta - alpha)
+            end_angle = np.degrees(beta + alpha)
+            ax_bot.add_patch(Arc(O_curr, r_g_curr*2, r_g_curr*2, theta1=start_angle, theta2=end_angle, 
+                      color='blue', lw=4, alpha=0.7))
+            # 模拟避开
+            if np.sin(theta - beta) > 0:
+                theta = beta + alpha + 0.1
+            else:
+                theta = beta - alpha - 0.1
+
+        M_x = O_curr[0] + r_g_curr * np.cos(theta)
+        M_y = O_curr[1] + r_g_curr * np.sin(theta)
+        
+        ax_bot.plot([O_curr[0], M_x], [O_curr[1], M_y], color='purple', linestyle='-', lw=2, alpha=0.7)
+        ax_bot.scatter(M_x, M_y, c='purple', s=120, edgecolors='white', zorder=8)
+        ax_bot.text(M_x+0.2, M_y, 'M', color='purple', fontsize=12, fontweight='bold')
+        
+        # 轨迹
+        x_trail = [A[0] + i * step_size for i in range(steps_taken + 1)]
+    # 1. 画历史轨迹上的“绿圆圆心”
+    for i in range(steps_taken + 1):
+        S_hist = np.array([A[0] + i * step_size, 0])
+        O_hist = (S_hist + B) / 2.0
+        # 用绿色小十字标出历史上的圆心
+        ax_bot.plot(O_hist[0], O_hist[1], marker='+', color='forestgreen', markersize=10, markeredgewidth=2)
+    # 2. 画当前智能体S
+    ax_bot.scatter(S_curr[0], S_curr[1], c='orange', s=150, edgecolors='black', zorder=10)
+    ax_bot.text(S_curr[0]+0.3, S_curr[1], 'S', color='black', fontsize=14, fontweight='bold')
+    # 3. 画当前的绿圆
+    if t > 0.5 and d_SB < r_wave * 2: 
+        r_g_curr = np.sqrt(r_wave**2 - (d_SB/2)**2)
+        ax_bot.add_patch(plt.Circle(O_curr, r_g_curr, color='green', fill=False, lw=2, linestyle='--'))
+        
+        # 标出当前圆心文字
+        ax_bot.text(O_curr[0]-0.2, O_curr[1]+0.3, 'O', color='darkgreen', fontsize=12, fontweight='bold')
+        # 避障逻辑与 M点计算
+        v_obs = obstacle - O_curr
+        dist_obs = np.linalg.norm(v_obs)
+        theta = t * 1.2 # 基准旋转
+        if dist_obs > 0:
+            alpha = np.arcsin(obstacle_radius / dist_obs)
+            beta = np.arctan2(v_obs[1], v_obs[0])
+            start_angle = np.degrees(beta - alpha)
+            end_angle = np.degrees(beta + alpha)
+            ax_bot.add_patch(Arc(O_curr, r_g_curr*2, r_g_curr*2, theta1=start_angle, theta2=end_angle, 
+                      color='blue', lw=4, alpha=0.7))
+            # 模拟避开
+            if np.sin(theta - beta) > 0:
+                theta = beta + alpha + 0.1
+            else:
+                theta = beta - alpha - 0.1
+        M_x = O_curr[0] + r_g_curr * np.cos(theta)
+        M_y = O_curr[1] + r_g_curr * np.sin(theta)
+        
+        ax_bot.plot([O_curr[0], M_x], [O_curr[1], M_y], color='purple', linestyle='-', lw=2, alpha=0.7)
+        ax_bot.scatter(M_x, M_y, c='purple', s=120, edgecolors='white', zorder=8)
+        ax_bot.text(M_x+0.2, M_y, 'M', color='purple', fontsize=12, fontweight='bold')
+        
+        # 轨迹
+        x_trail = [A[0] + i * step_size for i in range(steps_taken + 1)]
+        y_trail = [0] * len(x_trail)
+        ax_bot.plot(x_trail, y_trail, color='gray', linestyle=':', lw=1, alpha=0.5)
+        ax_bot.legend(loc='upper right')
     return []
-
-# ===========================
-# 生成动画并保存为 GIF
-# ===========================
 ani = animation.FuncAnimation(fig, update, frames=frames, init_func=init, blit=False, interval=80)
-
-# 保存为 GIF (需要安装 Pillow 库，如果没有，会报错。或者直接删掉.save这行只看弹窗)
-try:
-    ani.save('circle_walker_demo.gif', writer='pillow', fps=15)
-    print("✅ 动图已保存为 circle_walker_demo.gif")
-except:
-    print("⚠️ 无法保存GIF，但动画窗口正在弹出（请确保已安装 pillow: pip install pillow）")
-
 plt.show()
