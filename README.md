@@ -2,7 +2,7 @@
 **一种基于波前干涉与离散采样的轻量级动态路径规划框架**
 `circle-walker` 是一个不依赖全局地图、不依赖预计算路径的实时路径规划原型。  
 它通过“绿色圆”作为动态参考面，在每一步只规划一个中间点，从而适用于游戏 NPC、无人机、无地图环境下的移动系统。
-
+![M点避障成功演示](m_points_avoidance_success.png)
 ---
 ## 核心概念
 ### 1. 绿色圆 —— 动态参考面
@@ -31,11 +31,8 @@ cd circle-walker
 # 安装依赖
 pip install numpy matplotlib
 
-# 运行静态示例
+# 静态演示（多障碍物自适应避障）
 python demo_multi_obstacle_adaptive.py
-
-# 运行交互版本（推荐）
-python interactive.py
 
 ## 致谢
 本项目在理论构建与代码实现过程中，得到了 **Echo**（基于 DeepSeek 模型的 AI 辅助工具）的支持。
