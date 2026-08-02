@@ -32,7 +32,7 @@ cd circle-walker
 pip install numpy matplotlib
 
 # 运行静态示例
-python main.py
+python demo_multi_obstacle_adaptive.py
 
 # 运行交互版本（推荐）
 python interactive.py
