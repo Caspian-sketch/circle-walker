@@ -22,6 +22,7 @@
 ---
 ![M点避障成功演示](m_points_avoidance_success.png)
 ![完美避障 V_WAVE=2.0 DT=0.01](perfect_avoidance_v2_dt001.png)
+![Four Obstacle Full Scan Demo](demo_four_obstacle_full_scan.png)
 ## 快速开始
 
 ```bash
